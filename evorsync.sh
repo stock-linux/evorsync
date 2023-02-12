@@ -34,7 +34,6 @@ while read line; do
                     ftp -n $HOST <<END_SCRIPT
 user $USER $PASSWORD
 cd $BASEDIR/$repo
-dir
 put $FILE $FILENAME
 quit
 END_SCRIPT
@@ -44,7 +43,6 @@ END_SCRIPT
                 ftp -n $HOST <<END_SCRIPT
 user $USER $PASSWORD
 cd $BASEDIR/$repo
-dir
 put $FILE $FILENAME
 quit
 END_SCRIPT
