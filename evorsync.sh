@@ -37,27 +37,28 @@ while read line; do
                     version=$(echo $line | awk '{print $2}' | xargs)
                     release=$(echo $line | awk '{print $3}' | xargs)
                     
-                    comm -12 <(sort /var/evobld/$repo/INDEX) <(sort /var/evobld/$repo/DIST) | while read commonline ; do
+                    commonlines=$(comm -12 <(sort /var/evobld/$repo/INDEX) <(sort /var/evobld/$repo/DIST))
+                    while IFS= read -r commonline ; do
                         trimmed_line=$(echo $commonline | xargs)
-                        if [ ! "$trimmed_line" = "$name $version $release" ]; then
-                            echo "Processing $name"
+                        if [ "$trimmed_line" = "$name $version $release" ]; then
+                            echo "Package $name is already in the repos, skipping it."
+                            continue 2
+                        fi
+                    done <<< "$commonlines"
+                    echo "Processing $name"
                             
-                            sed -i "/$name/d" /var/evobld/$repo/DIST
-                            echo "$name $version $release" >> /var/evobld/$repo/DIST
-                            
-                            FILE="/var/evobld/$repo/$name-$version.evx"
-                            FILENAME="$name-$version.evx"
-                            
-                            ftp -n $HOST <<END_SCRIPT
+                    sed -i "/$name/d" /var/evobld/$repo/DIST
+                    echo "$name $version $release" >> /var/evobld/$repo/DIST
+                    
+                    FILE="/var/evobld/$repo/$name-$version.evx"
+                    FILENAME="$name-$version.evx"
+                    
+                    ftp -n $HOST <<END_SCRIPT
 user $USER $PASSWORD
 cd $BASEDIR/$repo
 put $FILE $FILENAME
 quit
 END_SCRIPT
-                        else
-                            echo "Package $name is already in the repos, skipping it."
-                        fi
-                    done
                 done < /var/evobld/$repo/INDEX
                 FILE="/var/evobld/$repo/DIST"
                 FILENAME="INDEX"
