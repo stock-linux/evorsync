@@ -1,11 +1,19 @@
 #!/bin/bash
-
 while read line; do
     # If line is not empty and begins with "REPO", we copy the repo.
     if [ "$line" != "" ] && [ "$(echo $line | cut -d ' ' -f 1)" = "REPO" ]; then
         repo=$(echo $line | cut -d ' ' -f 2)
         repo_path=$(echo $line | cut -d ' ' -f 3)
-        echo $repo_path
+        
+        echo "FTP Host: "
+        read HOST < /dev/tty
+        echo "FTP Packages Directory: "
+        read BASEDIR < /dev/tty
+        echo "FTP Username: "
+        read USER < /dev/tty
+        echo "FTP Password: "
+        read -s PASSWORD < /dev/tty
+
         if [[ $repo_path == http* ]]; then
             if [ -d /var/evobld/$repo ]; then
                 echo "$repo exists"
@@ -14,22 +22,24 @@ while read line; do
                     name=$(echo $line | grep -oE '^[^ ]+')
                     version=$(echo $line | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
                     release=$(echo $line | grep -oE '[0-9]+$')
- 
+
+                    PACKAGE_UP_ON_REPOS=0
+                    comm -12 <(sort /var/evobld/$repo/INDEX) <(sort /var/evobld/$repo/DIST) | while read commonline ; do
+                        if [ "$commonline" = "$name $version $release" ]; then
+                            PACKAGE_UP_ON_REPOS=1
+                        fi 
+                    done
+
+                    if [ $PACKAGE_UP_ON_REPOS = 1 ]; then
+                        continue
+                    fi
+
                     sed -i "/$name/d" /var/evobld/$repo/DIST
                     echo "$name $version $release" >> /var/evobld/$repo/DIST
 
                     #!/bin/bash
                     FILE="/var/evobld/$repo/$name-$version.evx"
                     FILENAME="$name-$version.evx"
-
-                    echo "FTP Host: "
-                    read HOST < /dev/tty
-                    echo "FTP Packages Directory: "
-                    read BASEDIR < /dev/tty
-                    echo "FTP Username: "
-                    read USER < /dev/tty
-                    echo "FTP Password: "
-                    read -s PASSWORD < /dev/tty
 
                     ftp -n $HOST <<END_SCRIPT
 user $USER $PASSWORD
