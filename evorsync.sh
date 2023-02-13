@@ -59,7 +59,7 @@ while read line; do
                             # We have to check if the release is higher or lower.
                             # We do this by getting the release from the repo.
                             repo_release=$(grep -E "^$name $version" /var/evobld/$repo/DIST | awk '{print $3}' | xargs)
-                            if [ "$release" -gt "$repo_release" ]; then
+                            if [ "$repo_release" -gt "$release" ]; then
                                 # The release is higher, we have to skip it.
                                 echo "Package $name is more up-to-date on $repo than local, skipping it."
                                 continue
