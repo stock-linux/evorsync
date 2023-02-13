@@ -37,21 +37,36 @@ while read line; do
                     version=$(echo $line | awk '{print $2}' | xargs)
                     release=$(echo $line | awk '{print $3}' | xargs)
                     
-                    while read -r line; do
-                        trimmed_line =  $(echo $line | xargs)
-                        if [ "$trimmed_line" = "$name $version $release" ]; then
-                            echo "Package $name already in repos, skipping it."
-                            continue 2
-                        fi
-                        pkg_name=$(echo $trimmed_line | awk '{print $1}' | xargs)
-                        pkg_version=$(echo $trimmed_line | awk '{print $2}' | xargs)
-                        pkg_release=$(echo $trimmed_line | awk '{print $3}' | xargs)
+                    # We have to check if the package is already in the repo.
+                    # If it is, we have to check if the release is equal.
+                    # If it is, we have to skip it.
+                    # If the release is different, if it's higher, we skip it.
+                    # If it's lower, we replace it.
+                    # We do this by using the grep command.
+                    # If the package is not in the repo, grep will return nothing.
+                    # We are looking for a line formatted like this:
+                    # package_name package_version package_release
+                    # So we are looking for a line starting with package_name package_version.
 
-                        if [ "$pkg_name" = "$name" ] && [ "$pkg_version" = "$version" ] && [ "$pkg_release" -gt "$release"]; then
-                            echo "Package $name is more up-to-date on $repo than local, skipping it."
-                            continue 2
+                    if [ "$(grep -E "^$name $version" /var/evobld/$repo/DIST)" != "" ]; then
+                        if [ "$(grep -E "^$name $version $release" /var/evobld/$repo/DIST)" != "" ]; then
+                            # The package is in the repo and the release is equal.
+                            # We have to skip it.
+                            echo "Package $name already in repos, skipping it."
+                            continue
+                        else
+                            # The package is in the repo but the release is different.
+                            # We have to check if the release is higher or lower.
+                            # We do this by getting the release from the repo.
+                            repo_release=$(grep -E "^$name $version" /var/evobld/$repo/DIST | awk '{print $3}' | xargs)
+                            if [ "$release" -gt "$repo_release" ]; then
+                                # The release is higher, we have to skip it.
+                                echo "Package $name is more up-to-date on $repo than local, skipping it."
+                                continue
+                            fi
                         fi
-                    done  < /var/evobld/$repo/DIST
+                    fi
+
                     echo "Processing $name"
                             
                     sed -i "/$name/d" /var/evobld/$repo/DIST
