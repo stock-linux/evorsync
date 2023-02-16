@@ -69,7 +69,7 @@ while read line; do
 
                     echo "Processing $name"
                             
-                    sed -i "/$name/d" /var/evobld/$repo/DIST
+                    sed -i "/$name\s/d" /var/evobld/$repo/DIST
                     echo "$name $version $release" >> /var/evobld/$repo/DIST
                     
                     FILE="/var/evobld/$repo/$name-$version.evx"
